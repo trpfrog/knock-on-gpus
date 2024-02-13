@@ -1,54 +1,67 @@
-mod gpu;
+mod availability;
+mod devices;
 
-use std::process::{ExitCode};
-use gpu::is_gpu_using;
+use availability::{get_gpu_availability, GPUAvailability};
 use clap::Parser;
-use colored::{Colorize};
+use colored::Colorize;
+use std::process::ExitCode;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Verbose mode
-    #[arg(long)]
-    verbose: bool,
-
-    /// Silence mode
-    #[arg(long)]
-    silent: bool,
-
-    /// Check all devices
+    /// Set visible devices
     #[arg(short, long)]
-    all: bool,
-}
+    devices: Option<String>,
 
+    #[arg(last = true)]
+    last: Vec<String>,
+}
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    assert!(!(args.silent && args.verbose), "Cannot be both silent and verbose");
 
-    let visible_devices = if args.all {
-        None
+    let devices = if let Some(selected_devices) = args.devices {
+        let visible_devices = devices::get_visible_devices().unwrap();
+        let selected_devices = devices::parse_cuda_visible_devices(&selected_devices).unwrap();
+        devices::pick_devices(&selected_devices, &visible_devices)
     } else {
-        gpu::parse_cuda_visible_devices()
+        devices::get_visible_devices().unwrap()
     };
 
-    return match is_gpu_using(visible_devices) {
-        Ok(false) => {
-            if args.verbose {
-                println!("{} GPU is available", "OK:".bold().green());
+    return match get_gpu_availability(&devices) {
+        Ok(GPUAvailability::Vacant) => {
+            let devices_str = devices
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(", ");
+
+            println!(
+                "{} GPU {} is available!",
+                "OK:".bold().green(),
+                &devices_str
+            );
+            if args.last.len() > 0 {
+                // Execute the command
+                std::process::Command::new(&args.last[0])
+                    .args(&args.last[1..])
+                    .env("CUDA_VISIBLE_DEVICES", devices_str)
+                    .spawn()
+                    .expect("Failed to execute command");
             }
             ExitCode::SUCCESS
-        },
-        Ok(true) => {
-            if !args.silent {
-                println!("{} GPU is currentry in use", "ERROR:".bold().red());
-                println!("See `nvidia-smi` for more information");
-            }
+        }
+        Ok(GPUAvailability::Occupied(status)) => {
+            println!("{} GPU is currently in use", "ERROR:".bold().red());
+            println!("{:?}", status);
+            println!("See `nvidia-smi` for more information.");
             ExitCode::FAILURE
         }
         Err(e) => {
-            // println!("Error has occurred while checking GPU usage: {}", e);
-            eprintln!("{} Error has occurred while checking GPU usage:", "ERROR".bold().red());
+            eprintln!(
+                "{} Error has occurred while checking GPU usage:",
+                "ERROR".bold().red()
+            );
             eprintln!("{}", e);
             ExitCode::FAILURE
         }

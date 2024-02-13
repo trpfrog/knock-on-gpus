@@ -22,6 +22,18 @@ You can also use `knock-on-gpus` to run a script with specific GPUs.
 CUDA_VISIBLE_DEVICES=0 knock-on-gpus && python my_script.py
 ```
 
+### Set alias for `python`
+
+You can set an alias for `python` to use `knock-on-gpus` by default.
+
+```bash
+alias python='knock-on-gpus && python'
+```
+
+Then you can run your script without `knock-on-gpus`.
+
+```bash
+
 ## Options
 
 ### `--silent`
