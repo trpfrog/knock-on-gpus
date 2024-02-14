@@ -41,6 +41,7 @@ pub(crate) fn get_visible_devices() -> Result<Vec<u32>, Box<dyn Error>> {
     }
 }
 
+/// Picks devices from the list of available devices
 pub(crate) fn pick_devices(pick_idx: &Vec<u32>, from_devices: &Vec<u32>) -> Vec<u32> {
     pick_idx
         .iter()

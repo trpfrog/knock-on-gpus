@@ -62,7 +62,7 @@ fn main() -> ExitCode {
 
     let devices = devices;
 
-    return match get_gpu_availability(&devices, args.memory_border_mib) {
+    match get_gpu_availability(&devices, args.memory_border_mib) {
         Ok(GPUAvailability::Vacant) => {
             let devices_str = devices
                 .iter()
@@ -120,5 +120,5 @@ fn main() -> ExitCode {
             eprintln!("{}", e);
             ExitCode::FAILURE
         }
-    };
+    }
 }
