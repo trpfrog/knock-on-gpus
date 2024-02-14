@@ -1,9 +1,12 @@
 use anyhow::{anyhow, Context, Result};
+use colored::Colorize;
 use nvml_wrapper::Nvml;
 
 /// Checks if CUDA is available
 pub(crate) fn is_cuda_available() -> bool {
-    Nvml::init().is_ok()
+    let nvml = Nvml::init();
+    log::debug!("CUDA is available: {}", nvml.is_ok());
+    nvml.is_ok()
 }
 
 /// Returns all device IDs even if CUDA_VISIBLE_DEVICES is set

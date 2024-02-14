@@ -1,9 +1,11 @@
 mod availability;
 mod devices;
+mod logger;
 
 use availability::{get_gpu_availability, GPUAvailability};
 use clap::Parser;
 use colored::Colorize;
+use log::{error, info, warn};
 use std::process::ExitCode;
 
 #[derive(Parser)]
@@ -19,6 +21,9 @@ struct Args {
     #[arg(long)]
     memory_border_mib: Option<f32>,
 
+    #[arg(long, default_value = "false")]
+    use_gpu_strictly: bool,
+
     // Number of min GPUs to use
     #[arg(long, default_value = "0")]
     min_gpus: usize,
@@ -29,20 +34,29 @@ struct Args {
 }
 
 fn main() -> ExitCode {
+    logger::init_logger();
     let args = Args::parse();
 
-    let mut devices = if let Some(selected_devices) = args.devices {
+    let is_cuda_available = devices::is_cuda_available();
+
+    if !is_cuda_available && args.use_gpu_strictly {
+        error!("CUDA is not available, but you are trying to use GPU strictly.");
+        return ExitCode::FAILURE;
+    }
+
+    let mut devices = if !is_cuda_available {
+        vec![]
+    } else if let Some(selected_devices) = args.devices {
         let visible_devices = devices::get_visible_devices().unwrap();
         let selected_devices = devices::parse_cuda_visible_devices(&selected_devices).unwrap();
-        devices::pick_devices(&selected_devices, &visible_devices)
+        devices::pick_devices(&selected_devices, &visible_devices).unwrap()
     } else {
         devices::get_visible_devices().unwrap()
     };
 
     if devices.len() < args.min_gpus {
-        println!(
-            "{} You are trying to use {} GPU(s), but at least {} GPU(s) are required.",
-            "ERROR:".bold().red(),
+        error!(
+            "You are trying to use {} GPU(s), but at least {} GPU(s) are required.",
             devices.len(),
             args.min_gpus
         );
@@ -50,19 +64,24 @@ fn main() -> ExitCode {
     }
 
     if devices.len() > args.max_gpus {
-        println!(
-            "{} You are trying to use {} GPU(s), but at most {} GPU(s) are allowed.",
-            "WARNING:".bold().yellow(),
+        warn!(
+            "You are trying to use {} GPU(s), but at most {} GPU(s) are allowed.\n\
+            Only the first {} GPU(s) will be used.",
             devices.len(),
+            args.max_gpus,
             args.max_gpus
         );
-        println!("Only the first {} GPU(s) will be used.", args.max_gpus);
         devices.truncate(args.max_gpus);
     }
 
     let devices = devices;
+    let availability = if devices.len() == 0 {
+        Ok(GPUAvailability::Vacant)
+    } else {
+        get_gpu_availability(&devices, args.memory_border_mib)
+    };
 
-    match get_gpu_availability(&devices, args.memory_border_mib) {
+    match availability {
         Ok(GPUAvailability::Vacant) => {
             let devices_str = devices
                 .iter()
@@ -70,12 +89,15 @@ fn main() -> ExitCode {
                 .collect::<Vec<String>>()
                 .join(",");
 
-            println!(
-                "{} GPU {} {} available!",
-                "OK:".bold().green(),
-                &devices_str,
-                if devices.len() > 1 { "are" } else { "is" }
-            );
+            if devices.len() == 0 {
+                warn!("CUDA is not available, using CPU instead.");
+            } else {
+                info!(
+                    "GPU {} {} available!",
+                    &devices_str,
+                    if devices.len() > 1 { "are" } else { "is" }
+                );
+            }
             if args.commands.len() > 0 {
                 println!(); // Add a new line
 
@@ -89,35 +111,28 @@ fn main() -> ExitCode {
 
                 status.wait().expect("Failed to wait for command");
             } else {
-                println!(
-                    "{} {}",
-                    "WARNING:".bold().yellow(),
-                    "No command to execute.".bold()
-                );
-                println!("If you use this command with `&&`, use `--` instead.");
-                println!(
-                    "{}\n",
+                warn!(
+                    "No command to execute.\n\
+                If you use this command with `&&`, use `--` instead.\n{}",
                     "Example: `knock-on-gpus --devices 0,1 -- python train.py`".dimmed()
                 );
             }
             ExitCode::SUCCESS
         }
+
         Ok(GPUAvailability::Occupied(status)) => {
-            println!(
-                "{} GPU {} is currently in use",
-                "ERROR:".bold().red(),
-                status.id
+            error!(
+                "GPU {} is currently in use\n{:?}\nSee `nvidia-smi` for more information.",
+                status.id, status
             );
-            println!("{:?}", status);
-            println!("See `nvidia-smi` for more information.");
             ExitCode::FAILURE
         }
+
         Err(e) => {
-            eprintln!(
-                "{} Error has occurred while checking GPU usage:",
-                "ERROR".bold().red()
+            error!(
+                "Error has occurred while checking GPU usage:\n{}",
+                e.to_string().dimmed()
             );
-            eprintln!("{}", e);
             ExitCode::FAILURE
         }
     }
