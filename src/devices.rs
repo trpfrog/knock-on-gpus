@@ -5,7 +5,7 @@ use std::error::Error;
 pub(crate) fn get_all_devices() -> Result<Vec<u32>, Box<dyn Error>> {
     let nvml = Nvml::init()?;
     let device_count = nvml.device_count()?;
-    return Ok((0..device_count).collect());
+    Ok((0..device_count).collect())
 }
 
 /// Parses the CUDA_VISIBLE_DEVICES string
@@ -22,23 +22,23 @@ pub(crate) fn parse_cuda_visible_devices(devices_str: &str) -> Result<Vec<u32>, 
     let nvml = Nvml::init().unwrap();
     let device_count = nvml.device_count().unwrap();
 
-    return match devices {
+    match devices {
         Ok(devices) if devices.iter().any(|d| *d >= device_count) => {
             Err(format!("Invalid device number: {}", devices_str))
         }
         Ok(devices) => Ok(devices),
         Err(e) => Err(e.to_string()),
-    };
+    }
 }
 
 /// Returns all available devices using the CUDA_VISIBLE_DEVICES environment variable
 pub(crate) fn get_visible_devices() -> Result<Vec<u32>, Box<dyn Error>> {
     let device_str = std::env::var("CUDA_VISIBLE_DEVICES").unwrap_or("".to_string());
-    return if device_str.is_empty() {
+    if device_str.is_empty() {
         get_all_devices()
     } else {
         Ok(parse_cuda_visible_devices(&device_str)?)
-    };
+    }
 }
 
 pub(crate) fn pick_devices(pick_idx: &Vec<u32>, from_devices: &Vec<u32>) -> Vec<u32> {
