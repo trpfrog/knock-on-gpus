@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Context, Result};
-use colored::Colorize;
 use nvml_wrapper::Nvml;
 
 /// Checks if CUDA is available
