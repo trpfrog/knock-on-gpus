@@ -31,6 +31,10 @@ struct Args {
     // Number of max GPUs to use
     #[arg(long, default_value = "1024")] // 1024 is a big enough number
     max_gpus: usize,
+
+    // Environment variable key to set visible devices
+    #[arg(long, default_value = "CUDA_VISIBLE_DEVICES")]
+    cuda_visible_devices_env_key: String,
 }
 
 fn main() -> ExitCode {
@@ -44,16 +48,20 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
 
+    // Get visible devices using `--devices` and `CUDA_VISIBLE_DEVICES`
     let mut devices = if !is_cuda_available {
         vec![]
     } else if let Some(selected_devices) = args.devices {
-        let visible_devices = devices::get_visible_devices().unwrap();
+        let key = &args.cuda_visible_devices_env_key;
+        let visible_devices = devices::get_visible_devices(Some(key)).unwrap();
         let selected_devices = devices::parse_cuda_visible_devices(&selected_devices).unwrap();
         devices::pick_devices(&selected_devices, &visible_devices).unwrap()
     } else {
-        devices::get_visible_devices().unwrap()
+        let key = &args.cuda_visible_devices_env_key;
+        devices::get_visible_devices(Some(key)).unwrap()
     };
 
+    // Check if the number of devices is enough
     if devices.len() < args.min_gpus {
         error!(
             "You are trying to use {} GPU(s), but at least {} GPU(s) are required.",
@@ -63,6 +71,7 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
 
+    // Check if the number of devices is too much
     if devices.len() > args.max_gpus {
         warn!(
             "You are trying to use {} GPU(s), but at most {} GPU(s) are allowed.\n\
@@ -74,21 +83,25 @@ fn main() -> ExitCode {
         devices.truncate(args.max_gpus);
     }
 
+    // Make devices immutable
     let devices = devices;
+
+    // Check if selected devices are available
     let availability = if devices.len() == 0 {
-        Ok(GPUAvailability::Vacant)
+        Ok(GPUAvailability::Vacant(vec![]))
     } else {
         get_gpu_availability(&devices, args.memory_border_mib)
     };
 
     match availability {
-        Ok(GPUAvailability::Vacant) => {
+        Ok(GPUAvailability::Vacant(_)) => {
             let devices_str = devices
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>()
                 .join(",");
 
+            // Print the message
             if devices.len() == 0 {
                 warn!("CUDA is not available, using CPU instead.");
             } else {
@@ -98,9 +111,9 @@ fn main() -> ExitCode {
                     if devices.len() > 1 { "are" } else { "is" }
                 );
             }
-            if args.commands.len() > 0 {
-                println!(); // Add a new line
 
+            // If all devices are available, execute the command
+            if args.commands.len() > 0 {
                 // Execute the command
                 let mut status = std::process::Command::new(&args.commands[0])
                     .args(&args.commands[1..])
@@ -122,8 +135,8 @@ fn main() -> ExitCode {
 
         Ok(GPUAvailability::Occupied(status)) => {
             error!(
-                "GPU {} is currently in use\n{:?}\nSee `nvidia-smi` for more information.",
-                status.id, status
+                "GPU(s) are currently in use\n{:?}\nSee `nvidia-smi` for more information.",
+                status
             );
             ExitCode::FAILURE
         }
