@@ -9,7 +9,7 @@ A CLI tool for checking if GPUs are available before running your script that us
 You can use `knock-on-gpus` to run a script that uses GPUs.
 
 ```bash
-knock-on-gpus && python my_script.py
+knock-on-gpus -- python my_script.py
 ```
 
 If some GPUs are not available, `knock-on-gpus` will return an error code and print a message to the console.
@@ -19,7 +19,7 @@ If some GPUs are not available, `knock-on-gpus` will return an error code and pr
 You can also use `knock-on-gpus` to run a script with specific GPUs.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 knock-on-gpus && python my_script.py
+CUDA_VISIBLE_DEVICES=0 knock-on-gpus -- python my_script.py
 ```
 
 ### Set alias for `python`
@@ -27,12 +27,11 @@ CUDA_VISIBLE_DEVICES=0 knock-on-gpus && python my_script.py
 You can set an alias for `python` to use `knock-on-gpus` by default.
 
 ```bash
-alias python='knock-on-gpus && python'
+alias unsafe-python="`which python`"
+alias python="knock-on-gpus -- python"
 ```
 
 Then you can run your script without `knock-on-gpus`.
-
-```bash
 
 ## Options
 
@@ -50,4 +49,6 @@ Checks if all GPUs are available even if `CUDA_VISIBLE_DEVICES` is set.
 
 ## Installation
 
-Under construction.
+```sh
+pip install git+https://github.com/trpfrog/knock-on-gpus
+```
