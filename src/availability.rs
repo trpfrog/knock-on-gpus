@@ -44,5 +44,5 @@ pub fn get_gpu_availability(
         }
     }
 
-    return Ok(GPUAvailability::Vacant);
+    Ok(GPUAvailability::Vacant)
 }
