@@ -2,7 +2,13 @@
 
 A CLI tool for checking if GPUs are available before running your script that uses GPUs.
 
-## Usage
+## Installation
+
+```sh
+pip install knock-on-gpus
+```
+
+## Quick start
 
 ### Basic usage
 
@@ -19,7 +25,13 @@ If some GPUs are not available, `knock-on-gpus` will return an error code and pr
 You can also use `knock-on-gpus` to run a script with specific GPUs.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 knock-on-gpus -- python my_script.py
+CUDA_VISIBLE_DEVICES=0,1 knock-on-gpus -- python my_script.py
+```
+
+You can also use `--devices` or `-d` to specify the GPUs to use.
+
+```bash
+knock-on-gpus -d 0,1 -- python my_script.py
 ```
 
 ### Set alias for `python`
@@ -35,20 +47,26 @@ Then you can run your script without `knock-on-gpus`.
 
 ## Options
 
-### `--silent`
+### `--devices` (short: `-d`)
 
-Suppresses the error message when GPUs are not available.
+Specifies the GPUs to use. The value is a comma-separated list of GPU IDs.
 
-### `--verbose`
+### `--memory-border-mib`
 
-Prints success messages to the console.
+Specifies the memory border (MiB) to treat as vacant. If the memory usage exceeds this value, the GPU will be treated as occupied.
 
-### `--all`
+### `--use-gpu-strictly`
 
-Checks if all GPUs are available even if `CUDA_VISIBLE_DEVICES` is set.
+If true, use GPU strictly. If CUDA is not available, it will fail.
 
-## Installation
+### `--min-gpus`
 
-```sh
-pip install git+https://github.com/trpfrog/knock-on-gpus
-```
+Specifies the number of min GPUs to use.
+
+### `--max-gpus`
+
+Specifies the number of max GPUs to use.
+
+### `--cuda-visible-devices-env-key`
+
+Specifies the environment variable key to set visible devices.
