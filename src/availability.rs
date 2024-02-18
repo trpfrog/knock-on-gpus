@@ -17,12 +17,9 @@ pub enum GPUAvailability {
     Occupied(Vec<GPUStatus>),
 }
 
-pub fn get_gpu_availability(
-    devices: &Vec<u32>,
-    memory_border_mib: Option<f32>,
-) -> Result<GPUAvailability> {
+pub fn get_gpu_availability(devices: &Vec<u32>, memory_border_mib: f32) -> Result<GPUAvailability> {
     let nvml = Nvml::init()?;
-    let memory_border_mib = memory_border_mib.unwrap_or(300.0);
+    let memory_border_mib = memory_border_mib;
     let memory_border_bytes = (memory_border_mib * 1024.0 * 1024.0) as u64;
 
     let status = devices
@@ -44,7 +41,7 @@ pub fn get_gpu_availability(
         .collect::<Result<Vec<GPUStatus>>>()?;
 
     let is_vacant = status.iter().any(|s| {
-        s.used_memory > memory_border_bytes || s.gpu_utilization > 20 || s.memory_utilization > 20
+        s.used_memory < memory_border_bytes && s.gpu_utilization < 20 && s.memory_utilization < 20
     });
 
     if is_vacant {
