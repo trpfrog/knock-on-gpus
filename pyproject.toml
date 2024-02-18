@@ -1,11 +1,14 @@
+[project]
+name = "knock-on-gpus"
+version = "0.0.1"
+readme = "README.md"
+license = {file = "LICENSE"}
+description = "Check if GPUs are available before running your script that uses GPUs."
+requires-python = ">=3.7"
+
 [build-system]
 requires = ["maturin>=1.4"]
 build-backend = "maturin"
-
-[project]
-name = "knock-on-gpus"
-description = "Check if GPUs are available before running your script that uses GPUs."
-requires-python = ">=3.7"
 
 [tool.maturin]
 bindings = "bin"
