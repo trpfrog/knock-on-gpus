@@ -91,8 +91,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
-    environment: ${{github.ref_name == 'master' && 'Production' || 'Test'}}
+    environment: Production
     needs: [linux, windows, macos, sdist]
     steps:
       - uses: actions/download-artifact@v3
@@ -102,7 +101,6 @@ jobs:
         uses: PyO3/maturin-action@v1
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-          MATURIN_REPOSITORY: ${{ github.ref_name == 'master' && 'pypi' || 'testpypi' }}
         with:
           command: upload
           args: --non-interactive --skip-existing *
