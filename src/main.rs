@@ -11,28 +11,33 @@ use std::process::ExitCode;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Set visible devices
+    /// Visible devices
     #[arg(short, long)]
     devices: Option<String>,
 
+    /// Commands to execute after checking GPU availability.
+    /// CUDA_VISIBLE_DEVICES will be set to the available devices.
     #[arg(last = true)]
     commands: Vec<String>,
 
-    #[arg(long)]
-    memory_border_mib: Option<f32>,
+    /// Memory border (MiB) to treat as vacant.
+    /// If the memory usage exceeds this value, the GPU will be treated as occupied.
+    #[arg(long, default_value = "300")]
+    memory_border_mib: f32,
 
+    /// If true, use GPU strictly. If CUDA is not available, it will fail.
     #[arg(long, default_value = "false")]
     use_gpu_strictly: bool,
 
-    // Number of min GPUs to use
+    /// Number of min GPUs to use
     #[arg(long, default_value = "0")]
     min_gpus: usize,
 
-    // Number of max GPUs to use
+    /// Number of max GPUs to use
     #[arg(long, default_value = "1024")] // 1024 is a big enough number
     max_gpus: usize,
 
-    // Environment variable key to set visible devices
+    /// Environment variable key to set visible devices
     #[arg(long, default_value = "CUDA_VISIBLE_DEVICES")]
     cuda_visible_devices_env_key: String,
 }
