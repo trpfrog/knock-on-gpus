@@ -37,14 +37,22 @@ struct Args {
     #[arg(long, default_value = "1024")] // 1024 is a big enough number
     max_gpus: usize,
 
+    /// If true, print debug logs
+    #[arg(long)]
+    verbose: bool,
+
     /// Environment variable key to set visible devices
     #[arg(long, default_value = "CUDA_VISIBLE_DEVICES")]
     cuda_visible_devices_env_key: String,
 }
 
 fn main() -> ExitCode {
-    logger::init_logger();
     let args = Args::parse();
+    logger::init_logger(if args.verbose {
+        log::Level::Debug
+    } else {
+        log::Level::Info
+    });
 
     let is_cuda_available = devices::is_cuda_available();
 

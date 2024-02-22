@@ -70,3 +70,7 @@ Specifies the number of max GPUs to use.
 ### `--cuda-visible-devices-env-key`
 
 Specifies the environment variable key to set visible devices.
+
+### `--verbose`
+
+If true, print verbose logs.
