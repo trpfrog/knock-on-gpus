@@ -1,6 +1,6 @@
 [project]
 name = "knock-on-gpus"
-version = "0.0.1"
+version = "0.0.2"
 readme = "README.md"
 license = {file = "LICENSE"}
 description = "A CLI tool for checking if GPUs are available before running your script that uses GPUs."
