@@ -12,7 +12,7 @@ use std::process::ExitCode;
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Visible devices
-    #[arg(short, long)]
+    #[arg(short, long, alias = "device")]
     devices: Option<String>,
 
     /// Commands to execute after checking GPU availability.

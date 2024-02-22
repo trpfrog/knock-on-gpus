@@ -57,7 +57,9 @@ Then you can run your script without `knock-on-gpus`.
 
 ## Options
 
-### `--devices` (short: `-d`)
+### `--devices`
+
+(Alias: `-d`, `--device`)
 
 Specifies the GPUs to use. The value is a comma-separated list of GPU IDs.
 
