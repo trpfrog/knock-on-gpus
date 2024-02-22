@@ -38,7 +38,7 @@ struct Args {
     max_gpus: usize,
 
     /// If a number is given, it will automatically allocate the number of GPUs.
-    #[arg(long)]
+    #[arg(short, long, alias = "auto")]
     auto_select: Option<usize>,
 
     /// If true, print debug logs

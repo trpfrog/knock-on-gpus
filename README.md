@@ -89,4 +89,6 @@ If true, print verbose logs.
 
 ### `--auto-select`
 
- If a number is given, it will automatically allocate the number of GPUs.
+(Alias: `-a`, `--auto`)
+
+If a number is given, it will automatically allocate the number of GPUs.
