@@ -34,6 +34,16 @@ You can also use `--devices` or `-d` to specify the GPUs to use.
 knock-on-gpus -d 0,1 -- python my_script.py
 ```
 
+### Auto selection
+
+You can use `--auto-select` to automatically allocate the number of GPUs.
+
+```bash
+knock-on-gpus --auto-select 2 -- python my_script.py
+```
+
+If GPU:0, GPU:1, and GPU:3 are unavailable, `knock-on-gpus` will use GPU:2 and GPU:4.
+
 ### Set alias for `python`
 
 You can set an alias for `python` to use `knock-on-gpus` by default.
@@ -47,7 +57,9 @@ Then you can run your script without `knock-on-gpus`.
 
 ## Options
 
-### `--devices` (short: `-d`)
+### `--devices`
+
+(Alias: `-d`, `--device`)
 
 Specifies the GPUs to use. The value is a comma-separated list of GPU IDs.
 
@@ -70,3 +82,13 @@ Specifies the number of max GPUs to use.
 ### `--cuda-visible-devices-env-key`
 
 Specifies the environment variable key to set visible devices.
+
+### `--verbose`
+
+If true, print verbose logs.
+
+### `--auto-select`
+
+(Alias: `-a`, `--auto`)
+
+If a number is given, it will automatically allocate the number of GPUs.

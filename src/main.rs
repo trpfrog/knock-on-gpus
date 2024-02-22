@@ -5,14 +5,14 @@ mod logger;
 use availability::{get_gpu_availability, GPUAvailability};
 use clap::Parser;
 use colored::Colorize;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use std::process::ExitCode;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Visible devices
-    #[arg(short, long)]
+    #[arg(short, long, alias = "device")]
     devices: Option<String>,
 
     /// Commands to execute after checking GPU availability.
@@ -37,14 +37,28 @@ struct Args {
     #[arg(long, default_value = "1024")] // 1024 is a big enough number
     max_gpus: usize,
 
+    /// If a number is given, it will automatically allocate the number of GPUs.
+    #[arg(short, long, alias = "auto")]
+    auto_select: Option<usize>,
+
+    /// If true, print debug logs
+    #[arg(long)]
+    verbose: bool,
+
     /// Environment variable key to set visible devices
     #[arg(long, default_value = "CUDA_VISIBLE_DEVICES")]
     cuda_visible_devices_env_key: String,
 }
 
 fn main() -> ExitCode {
-    logger::init_logger();
     let args = Args::parse();
+    logger::init_logger(if args.verbose {
+        log::Level::Debug
+    } else {
+        log::Level::Info
+    });
+
+    debug!("Arguments: {:#?}", args);
 
     let is_cuda_available = devices::is_cuda_available();
 
@@ -92,19 +106,20 @@ fn main() -> ExitCode {
     let devices = devices;
 
     // Check if selected devices are available
-    let availability = if devices.len() == 0 {
-        Ok(GPUAvailability::Vacant(vec![]))
-    } else {
-        get_gpu_availability(&devices, args.memory_border_mib)
-    };
+    let availability =
+        get_gpu_availability(&devices, args.memory_border_mib, args.auto_select.clone());
 
     match availability {
-        Ok(GPUAvailability::Vacant(_)) => {
+        Ok(GPUAvailability::Vacant(devices)) => {
             let devices_str = devices
                 .iter()
-                .map(|x| x.to_string())
+                .map(|x| x.id.to_string())
                 .collect::<Vec<String>>()
                 .join(",");
+
+            if args.auto_select.as_ref().is_some() {
+                info!("{} GPU(s) will be used.", devices.len());
+            }
 
             // Print the message
             if devices.len() == 0 {
@@ -130,8 +145,11 @@ fn main() -> ExitCode {
                 status.wait().expect("Failed to wait for command");
             } else {
                 warn!(
-                    "No command to execute.\n\
-                If you use this command with `&&`, use `--` instead.\n{}",
+                    concat!(
+                        "No command to execute.\n",
+                        "If you use this command with `&&`, use `--` instead.\n",
+                        "{}"
+                    ),
                     "Example: `knock-on-gpus --devices 0,1 -- python train.py`".dimmed()
                 );
             }
@@ -139,9 +157,21 @@ fn main() -> ExitCode {
         }
 
         Ok(GPUAvailability::Occupied(status)) => {
+            let devices_you_want = devices
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(",");
+            let used_devices = status
+                .iter()
+                .filter(|s| !s.is_vacant)
+                .map(|s| s.id.to_string())
+                .collect::<Vec<String>>();
             error!(
-                "GPU(s) are currently in use\n{:?}\nSee `nvidia-smi` for more information.",
-                status
+                "You tried to use GPU {}, but GPU {} {} currently in use.\nSee `nvidia-smi` for more information.",
+                &devices_you_want,
+                &used_devices.join(","),
+                if used_devices.len() > 1 { "are" } else { "is" }
             );
             ExitCode::FAILURE
         }
