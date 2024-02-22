@@ -5,10 +5,10 @@ mod logger;
 use availability::{get_gpu_availability, GPUAvailability};
 use clap::Parser;
 use colored::Colorize;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use std::process::ExitCode;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Visible devices
@@ -57,6 +57,8 @@ fn main() -> ExitCode {
     } else {
         log::Level::Info
     });
+
+    debug!("Arguments: {:#?}", args);
 
     let is_cuda_available = devices::is_cuda_available();
 
