@@ -20,6 +20,13 @@ knock-on-gpus -- python my_script.py
 
 If some GPUs are not available, `knock-on-gpus` will return an error code and print a message to the console.
 
+> [!NOTE]
+> **`knock-on-gpus` prohibits omitting the extra command** (`python my_script.py` in this example) **by default**.
+> This is to avoid accidentally executing the subsequent command without passing `CUDA_VISIBLE_DEVICES`.
+>
+> Please see [`--allow-noop` option](#--allow-noop) for details.
+
+
 ### Using with `CUDA_VISIBLE_DEVICES`
 
 You can also use `knock-on-gpus` to run a script with specific GPUs.
@@ -92,3 +99,33 @@ If true, print verbose logs.
 (Alias: `-a`, `--auto`)
 
 If a number is given, it will automatically allocate the number of GPUs.
+
+### `--allow-noop`
+
+If true, allow running without executing extra commands.
+
+#### Examples
+
+```sh
+$ knock-on-gpus -d "0,1,2,3" -- sh -c 'echo "devices=$CUDA_VISIBLE_DEVICES"'
+# => devices=0,1,2,3
+```
+
+If GPUs are available, this will succeed. *"devices=0,1,2,3"* will be printed.
+
+```sh
+$ knock-on-gpus && sh -c 'echo "devices=$CUDA_VISIBLE_DEVICES"'
+# => ERROR: Omitting the command is not allowed.
+```
+
+Even if GPUs are available, this will fail because no command passed to `knock-on-gpus`.
+
+Note that `&&` has no effect to pass the command to `knock-on-gpus`.
+
+```sh
+$ knock-on-gpus --allow-noop && sh -c 'echo "devices=$CUDA_VISIBLE_DEVICES"'
+# => devices=
+```
+
+If GPUs are available, this will succeed.
+**BUT** *"devices="* is printed instead of *"devices=0,1,2,3"* because `sh -c ...` is not passed to `knock-on-gpus`.

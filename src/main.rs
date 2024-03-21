@@ -26,7 +26,7 @@ struct Args {
     memory_border_mib: f32,
 
     /// If true, use GPU strictly. If CUDA is not available, it will fail.
-    #[arg(long, default_value = "false")]
+    #[arg(long)]
     use_gpu_strictly: bool,
 
     /// Number of min GPUs to use
@@ -44,6 +44,9 @@ struct Args {
     /// If true, print debug logs
     #[arg(long)]
     verbose: bool,
+
+    #[arg(long)]
+    allow_noop: bool,
 
     /// Environment variable key to set visible devices
     #[arg(long, default_value = "CUDA_VISIBLE_DEVICES")]
@@ -152,6 +155,13 @@ fn main() -> ExitCode {
                     ),
                     "Example: `knock-on-gpus --devices 0,1 -- python train.py`".dimmed()
                 );
+                if !args.allow_noop {
+                    error!(concat!(
+                        "Omitting the command is not allowed.\n",
+                        "Use `--allow-noop` to allow omitting the command."
+                    ));
+                    return ExitCode::FAILURE;
+                }
             }
             ExitCode::SUCCESS
         }
